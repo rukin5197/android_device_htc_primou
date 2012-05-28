@@ -49,3 +49,4 @@ TARGET_RECOVERY_INITRC := device/htc/ville/recovery/init-twrp.rc
 
 # TWRP specific build flags
 DEVICE_RESOLUTION := 540x960
+TW_FLASH_FROM_STORAGE := true
