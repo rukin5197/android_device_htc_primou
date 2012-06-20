@@ -1,2 +1,2 @@
 PRODUCT_MAKEFILES := \
-    $(LOCAL_DIR)/device_ville.mk
+    $(LOCAL_DIR)/device_primou.mk

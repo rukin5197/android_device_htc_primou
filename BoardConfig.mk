@@ -1,14 +1,14 @@
 USE_CAMERA_STUB := true
 
 # inherit from the proprietary version
--include vendor/htc/ville/BoardConfigVendor.mk
+-include vendor/htc/primou/BoardConfigVendor.mk
 
 TARGET_NO_BOOTLOADER := true
-TARGET_BOOTLOADER_BOARD_NAME := ville
+TARGET_BOOTLOADER_BOARD_NAME := primou
 
 # Platform
-TARGET_BOARD_PLATFORM := msm8960
-TARGET_BOARD_PLATFORM_GPU := qcom-adreno225
+TARGET_BOARD_PLATFORM := msm8255
+TARGET_BOARD_PLATFORM_GPU := qcom-adreno205
 
 # Flags
 TARGET_GLOBAL_CFLAGS += -mfpu=neon -mfloat-abi=softfp
@@ -23,18 +23,17 @@ TARGET_CPU_SMP := true
 ARCH_ARM_HAVE_TLS_REGISTER := true
 
 
-BOARD_KERNEL_CMDLINE :=  console=ttyHSL0,115200,n8 androidboot.hardware=ville
-BOARD_KERNEL_BASE :=  0x80400000
-BOARD_FORCE_RAMDISK_ADDRESS := 0x81800000
+BOARD_KERNEL_CMDLINE :=  console=ttyHSL0,115200,n8 androidboot.hardware=primou
+BOARD_KERNEL_BASE :=  0x13F00000
 BOARD_KERNEL_PAGESIZE := 4096
 
-BOARD_BOOTIMAGE_PARTITION_SIZE := 0x01000000
-BOARD_RECOVERYIMAGE_PARTITION_SIZE := 0x00fffe00
-BOARD_SYSTEMIMAGE_PARTITION_SIZE := 0x67fffc00
-BOARD_USERDATAIMAGE_PARTITION_SIZE := 0x105c0000
+BOARD_BOOTIMAGE_PARTITION_SIZE := 0x080000000
+BOARD_RECOVERYIMAGE_PARTITION_SIZE := 0x0010FE80000
+BOARD_SYSTEMIMAGE_PARTITION_SIZE := 0x63BFFC0000
+BOARD_USERDATAIMAGE_PARTITION_SIZE := 0x79FFFC0000
 BOARD_FLASH_BLOCK_SIZE := 131072
 
-TARGET_PREBUILT_KERNEL := device/htc/ville/kernel
+TARGET_PREBUILT_KERNEL := device/htc/primou/kernel
 
 TARGET_USE_CUSTOM_LUN_FILE_PATH := /sys/class/android_usb/android0/f_mass_storage/lun%d/file
 
@@ -45,8 +44,8 @@ BOARD_HAS_LARGE_FILESYSTEM := true
 
 # Recovery: set depending on recovery being built for. (CWM or TWRP)
 #           both init scripts can be found in the recovery folder
-TARGET_RECOVERY_INITRC := device/htc/ville/recovery/init-twrp.rc
+TARGET_RECOVERY_INITRC := device/htc/primou/recovery/init-twrp.rc
 
 # TWRP specific build flags
-DEVICE_RESOLUTION := 540x960
+DEVICE_RESOLUTION := 480x800
 TW_FLASH_FROM_STORAGE := true

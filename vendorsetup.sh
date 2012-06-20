@@ -20,5 +20,5 @@
 # In particular, you can add lunch options with the add_lunch_combo
 # function: add_lunch_combo generic-eng
 
-add_lunch_combo htc_ville-userdebug
-add_lunch_combo htc_ville-eng
+add_lunch_combo htc_primou-userdebug
+add_lunch_combo htc_primou-eng
