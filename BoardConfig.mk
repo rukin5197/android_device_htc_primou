@@ -49,3 +49,4 @@ TARGET_RECOVERY_INITRC := device/htc/primou/recovery/init-twrp.rc
 # TWRP specific build flags
 DEVICE_RESOLUTION := 480x800
 TW_FLASH_FROM_STORAGE := true
+TW_INCLUDE_DUMLOCK := true

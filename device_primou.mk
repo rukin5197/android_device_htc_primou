@@ -21,7 +21,8 @@ PRODUCT_COPY_FILES += \
     device/htc/primou/recovery/sbin/choice_fn:recovery/root/sbin/choice_fn \
     device/htc/primou/recovery/sbin/detect_key:recovery/root/sbin/detect_key \
     device/htc/primou/recovery/sbin/offmode_charging:recovery/root/sbin/offmode_charging \
-    device/htc/primou/recovery/sbin/power_test:recovery/root/sbin/power_test
+    device/htc/primou/recovery/sbin/power_test:recovery/root/sbin/power_test \
+    device/htc/primou/recovery/sbin/postrecoveryboot.sh:recovery/root/sbin/postrecoveryboot.sh
 
 $(call inherit-product, build/target/product/full.mk)
 
