@@ -1,0 +1,68 @@
+#
+# system.prop for primoc
+#
+
+#qcom display
+debug.sf.hw=1
+debug.composition.type=gpu
+ro.sf.compbypass.enable=1
+dev.pm.dyn_samplingrate=1
+debug.mdpcomp.maxlayer=3
+debug.mdpcomp.logs=0
+
+qcom.qc.hardware=true
+com.qc.hdmi_out=false
+
+rild.libpath=/system/lib/libhtc_ril.so
+ro.ril.oem.ecclist=911
+ro.ril.set.mtusize=1472
+ro.ril.enable.amr.wideband=1
+ro.ril.avoid.pdp.overlap=1
+ro.ril.hsxpa=1
+ro.ril.gprsclass=10
+ro.ril.hep=1
+ro.ril.enable.dtm=0
+ro.ril.hsdpa.category=8
+ro.ril.enable.a53=1
+ro.ril.enable.3g.prefix=1
+ro.ril.htcmaskw1.bitmask=4294967295
+ro.ril.htcmaskw1=14449
+ro.ril.hsupa.category=6
+
+# Default network type.
+# 0 => WCDMA preferred.
+ro.telephony.default_network=4
+
+wifi.interface=wlan0
+wifi.supplicant_scan_interval=150
+
+mobiledata.interfaces=rmnet0,rmnet1,rmnet2
+
+# The OpenGL ES API level that is natively supported by this device.
+# This is a 16.16 fixed point number
+ro.opengles.version=131072
+
+# For the default value of agps
+ro.ril.def.agps.mode=1
+
+# For HSDPA low throughput
+ro.ril.disable.power.collapse=1
+
+# Properties of Scalado Denoise param.
+postprocess.iso_midband=400
+postprocess.denoise_level=5
+
+# Recording Audio Workaround
+ro.camera.sound.disabled=1
+
+# USB Mounting
+persist.sys.usb.config=mass_storage,adb
+
+dalvik.vm.dexopt-data-only=1
+
+# Hardware Info
+ro.device.chipset=Qualcomm Snapdragon MSM8255
+ro.device.gpu=Adreno 205
+ro.device.front_cam=Not available
+ro.device.rear_cam=5 Megapixels
+ro.device.screen_res=480x800
