@@ -1,0 +1,63 @@
+#!/system/bin/sh
+
+LOG_FILE=/data/swap.log
+if [ -e $LOG_FILE ]; then
+    rm $LOG_FILE
+fi
+
+echo "Starting swap set $( date +"%m-%d-%Y %H:%M:%S" )" | tee -a $LOG_FILE
+
+if [ ! -e /system/xbin/busybox ]; then
+	echo "busybox not installed" | tee -a $LOG_FILE
+	exit -1
+fi
+
+# enable swap prtition 130m
+/system/xbin/busybox mkswap /dev/block/mmcblk0p27 | tee -a $LOG_FILE
+
+# enable swap file on /mnt/emmc
+CREATE_EMMC_SWAPFILE=1
+
+# mount /mnt/emmc if needed
+if [ -e /mnt/emmc ]; then
+	# check if already mounted
+	cat /proc/mounts |grep mmcblk0p32 &> /dev/null
+	
+	if [ $? -eq 1 ]; then
+		# not mounted till now
+		busybox mount -t ext4 -o nosuid,nodev /dev/block/mmcblk0p32 /mnt/emmc
+		if [ $? -eq 1 ]; then
+			echo "failed to mount /dev/block/mmcblk0p32 to /mnt/emmc" | tee -a $LOG_FILE	
+			CREATE_EMMC_SWAPFILE=0
+		fi
+	else
+		# mounted - check if its an ext partition	
+		cat /proc/mounts |grep mmcblk0p32 | grep ext4 &> /dev/null
+		if [ $? -eq 1 ]; then
+			echo "/mnt/emmc is not an ext4 partition" | tee -a $LOG_FILE	
+			CREATE_EMMC_SWAPFILE=0
+		fi
+	fi
+else 
+	echo "/mnt/emmc not found" | tee -a $LOG_FILE
+	CREATE_EMMC_SWAPFILE=0
+fi
+
+if [ $CREATE_EMMC_SWAPFILE -eq 1 ]; then
+	if [ -e /mnt/emmc ]; then
+		if [ -e /mnt/emmc/swapfile ]; then
+			rm /mnt/emmc/swapfile
+		fi
+
+		# 90m
+		dd if=/dev/zero of=/mnt/emmc/swapfile bs=1024 count=92160 | tee -a $LOG_FILE
+		/system/xbin/busybox mkswap /mnt/emmc/swapfile | tee -a $LOG_FILE
+		/system/xbin/busybox swapon /mnt/emmc/swapfile | tee -a $LOG_FILE
+	fi
+fi
+
+/system/xbin/busybox swapon /dev/block/mmcblk0p27 | tee -a $LOG_FILE
+/system/xbin/busybox free | tee -a $LOG_FILE
+cat /proc/swaps | tee -a $LOG_FILE
+
+echo "Ending swap set $( date +"%m-%d-%Y %H:%M:%S" )" | tee -a $LOG_FILE

@@ -1,0 +1,20 @@
+#!/system/bin/sh
+#
+# Compcache handler
+# max.weninger@gmail.com
+# Decides whether or not Compcache is enabled
+#
+MEMTOTAL=$( awk '{ if ($1 eq "MemTotal:") print $2 ;exit }' </proc/meminfo )
+PROP=`getprop persist.service.zram`
+
+if [ $PROP != 0 ]
+then
+  CCSIZE=$(($(($MEMTOTAL * $PROP)) / 100))
+  echo $CCSIZE
+  `dirname $0`/compcache start $CCSIZE
+else
+  `dirname $0`/compcache stop
+fi
+
+exit 0
+

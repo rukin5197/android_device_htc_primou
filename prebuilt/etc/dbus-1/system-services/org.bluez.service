@@ -1,0 +1,4 @@
+[D-BUS Service]
+Name=org.bluez
+Exec=/system/xbin/false
+User=bluetooth

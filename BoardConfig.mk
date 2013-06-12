@@ -23,7 +23,7 @@
 # WARNING: This line must come *before* including the proprietary
 # variant, so that it gets overwritten by the parent (which goes
 # against the traditional rules of inheritance).
-USE_CAMERA_STUB := true
+
 
 # inherit from common msm7x30
 -include device/htc/msm7x30-common/BoardConfigCommon.mk
@@ -33,16 +33,13 @@ USE_CAMERA_STUB := true
 
 TARGET_BOOTLOADER_BOARD_NAME := primou
 
-BOARD_KERNEL_CMDLINE := console=ttyHSL0,115200,n8 androidboot.hardware=primou no_console_suspend=1
-BOARD_KERNEL_BASE := 0x13f00000
+BOARD_KERNEL_CMDLINE := console=ttyHSL0 androidboot.hardware=primou no_console_suspend=1
+BOARD_KERNEL_BASE := 0x14300000
 BOARD_KERNEL_PAGE_SIZE := 4096
 
-BOARD_VENDOR_QCOM_GPS_LOC_API_HARDWARE := primou
-BOARD_VENDOR_QCOM_GPS_LOC_API_AMSS_VERSION := 50000
-
 TARGET_PROVIDES_LIBLIGHTS := true
+SUPERUSER_EMBEDDED := true
 
-TARGET_NO_HW_VSYNC := true
 
 # cat /proc/emmc
 #dev:        size     erasesize name
@@ -58,27 +55,35 @@ TARGET_NO_HW_VSYNC := true
 TARGET_USERIMAGES_USE_EXT4 := true
 BOARD_SYSTEMIMAGE_PARTITION_SIZE := 585101312
 BOARD_USERDATAIMAGE_PARTITION_SIZE := 1232072704
-BOARD_BOOTIMAGE_PARTITION_SIZE := 4304304
+BOARD_BOOTIMAGE_PARTITION_SIZE := 4194304
 BOARD_FLASH_BLOCK_SIZE := 262144
 
 TARGET_RELEASETOOLS_EXTENSIONS := device/htc/common
 
-TARGET_KERNEL_SOURCE := kernel/SickleKernel
-TARGET_KERNEL_CONFIG := primou_defconfig
-
-BOARD_HAS_LARGE_FILESYSTEM := true
-BOARD_HAS_NO_SELECT_BUTTON := true
-BOARD_SDCARD_DEVICE_PRIMARY := /dev/block/mmcblk1p1
-BOARD_SDCARD_DEVICE_SECONDARY := /dev/block/mmcblk1
-BOARD_USES_MMCUTILS := false
-BOARD_HAS_NO_MISC_PARTITION := false
-
-BOARD_VOLD_EMMC_SHARES_DEV_MAJOR := true
-
-TARGET_USE_CUSTOM_LUN_FILE_PATH := /sys/class/android_usb/android0/f_mass_storage/lun0/file
+TARGET_KERNEL_SOURCE := kernel/htc/msm7x30
+TARGET_KERNEL_CONFIG := hellboy-bt-42_defconfig
+#TARGET_PREBUILT_KERNEL := device/htc/primou/prebuilt/root/kernel
 
 # Bluetooth
 BOARD_BLUETOOTH_BDROID_BUILDCFG_INCLUDE_DIR := device/htc/primou/bluetooth
 
-# Temporary ION defines
-TARGET_USES_ION := true
+BOARD_NO_RGBX_8888 := true
+
+# This is needed so CWM will function properly
+
+BOARD_HAS_NO_SELECT_BUTTON := true
+BOARD_SDCARD_DEVICE_PRIMARY := /dev/block/mmcblk1p1
+BOARD_SDEXT_DEVICE := /dev/block/mmcblk0p32
+BOARD_USES_MMCUTILS := false
+BOARD_HAS_NO_MISC_PARTITION := false
+
+BOARD_HAS_LARGE_FILESYSTEM := true
+
+# Actual UMS different from TWRP for some reason
+
+BOARD_UMS_LUNFILE := /sys/class/android_usb/f_mass_storage/lun0/file
+
+# Script
+
+TARGET_RECOVERY_INITRC := device/htc/primou/recovery/init-cwm.rc
+TARGET_USE_CUSTOM_LUN_FILE_PATH := /sys/class/android_usb/android0/f_mass_storage/lun0/file

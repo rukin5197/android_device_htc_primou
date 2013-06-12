@@ -1,3 +1,19 @@
+/*
+ * Copyright (C) 2010 Diogo Ferreira <diogo@underdev.org>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #define LOG_TAG "lights"
 
 #include <cutils/log.h>
@@ -23,19 +39,24 @@ static int g_backlight = 255;
 
 char const*const AMBER_LED_FILE = "/sys/class/leds/amber/brightness";
 char const*const GREEN_LED_FILE = "/sys/class/leds/green/brightness";
-char const*const AMBER_BLINK_FILE = "/sys/class/leds/amber/blink";
-char const*const GREEN_BLINK_FILE = "/sys/class/leds/green/blink";
 
 char const*const BUTTON_P_FILE = "/sys/class/leds/button-backlight/brightness";
+
+char const*const AMBER_BLINK_FILE = "/sys/class/leds/amber/blink";
+char const*const GREEN_BLINK_FILE = "/sys/class/leds/green/blink";
 
 char const*const LCD_BACKLIGHT_FILE = "/sys/class/leds/lcd-backlight/brightness";
 
 enum {
-  LED_AMBER,
-  LED_GREEN,
+	LED_AMBER,
+	LED_GREEN,
 	LED_BLANK,
+    LED_UNKNOWN,
 };
 
+/**
+ * Aux method, write int to file
+ */
 static int write_int (const char* path, int value) {
 	int fd;
 	static int already_warned = 0;
@@ -51,11 +72,11 @@ static int write_int (const char* path, int value) {
 
 	char buffer[20];
 	int bytes = snprintf(buffer, sizeof(buffer), "%d\n",value);
+        ALOGV("write_int %s %d\n", path, value);
 	int written = write (fd, buffer, bytes);
 	close (fd);
 
 	return written == -1 ? -errno : 0;
-
 }
 
 void init_globals (void) {
@@ -66,95 +87,85 @@ static int is_lit (struct light_state_t const* state) {
 	return state->color & 0x00ffffff;
 }
 
-static void set_speaker_light_locked_notif (struct light_device_t *dev, struct light_state_t *state) {
-	unsigned int colorRGB = state->color & 0xFFFFFF;
-	unsigned int color = LED_BLANK;
-
-	if ((colorRGB >> 8)&0xFF)
-		color = LED_GREEN;
-	if ((colorRGB >> 16)&0xFF)
-		color = LED_AMBER;
-
-	int amber = (colorRGB >> 16)&0xFF;
-	int green = (colorRGB >> 8)&0xFF;
-
-	switch (state->flashMode) {
-		case LIGHT_FLASH_TIMED:
-			switch (color) {
-				case LED_AMBER:
-					write_int (AMBER_LED_FILE, 1);
-					write_int (GREEN_LED_FILE, 0);
-					write_int (AMBER_BLINK_FILE, 1);
-					write_int (GREEN_BLINK_FILE, 0);
-					break;
-				case LED_GREEN:
-					write_int (GREEN_LED_FILE, 1);
-					write_int (AMBER_LED_FILE, 0);
-					write_int (GREEN_BLINK_FILE, 1);
-					write_int (AMBER_BLINK_FILE, 0);
-					break;
-				case LED_BLANK:
-					write_int (AMBER_LED_FILE, 0);
-					write_int (GREEN_LED_FILE, 0);
-					write_int (AMBER_BLINK_FILE, 0);
-					write_int (GREEN_BLINK_FILE, 0);
-					break;
-				default:
-					ALOGE("set_led_state colorRGB=%08X, unknown color\n",
-							colorRGB);
-					break;
-			}
-			break;
-		case LIGHT_FLASH_NONE:
-			switch (color) {
-				case LED_AMBER:
-					write_int (AMBER_LED_FILE, 1);
-					write_int (GREEN_LED_FILE, 0);
-					write_int (AMBER_BLINK_FILE, 1);
-					write_int (GREEN_BLINK_FILE, 0);
-					break;
-				case LED_GREEN:
-					write_int (GREEN_LED_FILE, 1);
-					write_int (AMBER_LED_FILE, 0);
-					write_int (GREEN_BLINK_FILE, 1);
-					write_int (AMBER_BLINK_FILE, 0);
-					break;
-				case LED_BLANK:
-					write_int (AMBER_LED_FILE, 0);
-					write_int (GREEN_LED_FILE, 0);
-					write_int (AMBER_BLINK_FILE, 0);
-					write_int (GREEN_BLINK_FILE, 0);
-					break;
-			}
-			break;
-		default:
-			ALOGE("set_led_state colorRGB=%08X, unknown mode %d\n",
-					colorRGB, state->flashMode);
-	}
-
+static int has_green(int colorRGB) {
+    return ((colorRGB >> 8)&0xFF);
 }
-	
-static void set_speaker_light_locked_batt (struct light_device_t *dev, struct light_state_t *state) {
+
+static int has_red(int colorRGB) {
+    return ((colorRGB >> 16)&0xFF);
+}
+
+static int has_blue(int colorRGB) {
+    return (colorRGB&0xFF);
+}
+
+static int is_green(int colorRGB) {
+    return (((colorRGB >> 8)&0xFF)==0xFF) 
+        && !has_blue(colorRGB) 
+        && !has_red(colorRGB);
+}
+
+// use amber LED for red 
+static int is_amber(int colorRGB) {
+    return ((colorRGB >> 16)&0xFF)==0xFF
+        && !has_green(colorRGB)
+        && !has_blue(colorRGB);
+}
+
+// battery uses 00FFFF00 for charging which always should be amber
+static int is_amber_battery(int colorRGB) {
+    return ((colorRGB >> 16)&0xFF)==0xFF
+        && (((colorRGB >> 8)&0xFF)==0xFF) 
+        && !has_blue(colorRGB);
+}
+
+static int is_blank(int colorRGB) {
+    return colorRGB==0;
+}
+
+static int get_blink_value(struct light_state_t *state) {
+    unsigned int onMS, offMS;
+
+    onMS = state->flashOnMS;
+    offMS = state->flashOffMS;
+
+    ALOGV("get_blink_value onMS=%d offMS=%d\n", onMS, offMS);
+
+    // always on not supported
+    if(offMS == 0)
+        return 1;
+    // fast
+    if(offMS < 1000)
+        return 5;
+    // normal
+    return 1;
+}
+
+static void set_speaker_light_locked (struct light_device_t *dev, struct light_state_t *state) {
 	unsigned int colorRGB = state->color & 0xFFFFFF;
-	unsigned int color = LED_BLANK;
+	unsigned int color = LED_UNKNOWN;
+    unsigned int blink_value=1;
 
-	if ((colorRGB >> 8)&0xFF)
-		color = LED_GREEN;
-	if ((colorRGB >> 16)&0xFF)
-		color = LED_AMBER;
+	if(is_green(colorRGB))
+        color=LED_GREEN;
+    else if(is_amber(colorRGB) || is_amber_battery(colorRGB))
+        color=LED_AMBER;
+    else if(is_blank(colorRGB))
+        color=LED_BLANK;
 
-	int amber = (colorRGB >> 16)&0xFF;
-	int green = (colorRGB >> 8)&0xFF;
+    ALOGV("set_speaker_light_locked mode=%d colorRGB=%08X color=%d\n",
+							state->flashMode, colorRGB, color);
 
 	switch (state->flashMode) {
 		case LIGHT_FLASH_TIMED:
+            blink_value=get_blink_value(state);
 			switch (color) {
 				case LED_AMBER:
-					write_int (AMBER_LED_FILE, 1);
+					write_int (AMBER_BLINK_FILE, blink_value);
 					write_int (GREEN_LED_FILE, 0);
 					break;
 				case LED_GREEN:
-					write_int (GREEN_LED_FILE, 1);
+					write_int (GREEN_BLINK_FILE, blink_value);
 					write_int (AMBER_LED_FILE, 0);
 					break;
 				case LED_BLANK:
@@ -162,11 +173,15 @@ static void set_speaker_light_locked_batt (struct light_device_t *dev, struct li
 					write_int (GREEN_LED_FILE, 0);
 					break;
 				default:
+					// tread unknown color like green
+					write_int (GREEN_BLINK_FILE, blink_value);
+					write_int (AMBER_LED_FILE, 0);
 					ALOGE("set_led_state colorRGB=%08X, unknown color\n",
 							colorRGB);
 					break;
 			}
 			break;
+		case LIGHT_FLASH_HARDWARE:
 		case LIGHT_FLASH_NONE:
 			switch (color) {
 				case LED_AMBER:
@@ -181,6 +196,13 @@ static void set_speaker_light_locked_batt (struct light_device_t *dev, struct li
 					write_int (AMBER_LED_FILE, 0);
 					write_int (GREEN_LED_FILE, 0);
 					break;
+				default:
+					// tread unknown color like green
+					write_int (AMBER_LED_FILE, 0);
+					write_int (GREEN_LED_FILE, 1);
+					ALOGE("set_led_state colorRGB=%08X, unknown color\n",
+							colorRGB);
+					break;
 
 			}
 			break;
@@ -188,42 +210,54 @@ static void set_speaker_light_locked_batt (struct light_device_t *dev, struct li
 			ALOGE("set_led_state colorRGB=%08X, unknown mode %d\n",
 					colorRGB, state->flashMode);
 	}
-
 }
 
 static void set_speaker_light_locked_dual (struct light_device_t *dev, struct light_state_t *bstate, struct light_state_t *nstate) {
 
 	unsigned int bcolorRGB = bstate->color & 0xFFFFFF;
-	unsigned int bcolor = LED_BLANK;
+	unsigned int bcolor = LED_UNKNOWN;
 
-	if ((bcolorRGB >> 8)&0xFF) bcolor = LED_GREEN;
-	if ((bcolorRGB >> 16)&0xFF) bcolor = LED_AMBER;
+	if(is_green(bcolorRGB))
+        bcolor=LED_GREEN;
+    else if(is_amber(bcolorRGB) || is_amber_battery(bcolorRGB))
+        bcolor=LED_AMBER;
+    else if(is_blank(bcolorRGB))
+        bcolor=LED_BLANK;
 
+    ALOGV("set_speaker_light_locked_dual mode=%d colorRGB=%08X color=%d\n",
+							bstate->flashMode, bcolorRGB, bcolor);
+
+    // ignore state if battery is attached
 	if (bcolor == LED_AMBER) {
 		write_int (AMBER_LED_FILE, 1);
-		write_int (AMBER_BLINK_FILE, 1);
+		write_int (GREEN_LED_FILE, 0);
 	} else if (bcolor == LED_GREEN) {
 		write_int (GREEN_LED_FILE, 1);
-		write_int (GREEN_BLINK_FILE, 1);
+		write_int (AMBER_LED_FILE, 0);
+	} else if (bcolor == LED_BLANK) {
+		write_int (GREEN_LED_FILE, 0);
+		write_int (AMBER_LED_FILE, 0);
 	} else {
+        // tread unknown color like green
+		write_int (GREEN_LED_FILE, 1);
+		write_int (AMBER_LED_FILE, 0);
 		ALOGE("set_led_state (dual) unexpected color: bcolorRGB=%08x\n", bcolorRGB);
 	}
-
 }
-
 
 static void handle_speaker_battery_locked (struct light_device_t *dev) {
 	if (is_lit (&g_battery) && is_lit (&g_notification)) {
 		set_speaker_light_locked_dual (dev, &g_battery, &g_notification);
 	} else if (is_lit (&g_battery)) {
-		set_speaker_light_locked_batt (dev, &g_battery);
+		set_speaker_light_locked(dev, &g_battery);
 	} else {
-		set_speaker_light_locked_notif (dev, &g_notification);
+		set_speaker_light_locked(dev, &g_notification);
 	}
 }
 
 static int set_light_buttons (struct light_device_t* dev,
 		struct light_state_t const* state) {
+	ALOGV("set_light_buttons");
 	int err = 0;
 	int on = is_lit (state);
 	pthread_mutex_lock (&g_lock);
@@ -243,6 +277,7 @@ static int rgb_to_brightness(struct light_state_t const* state)
 
 static int set_light_backlight(struct light_device_t* dev,
 		struct light_state_t const* state) {
+	ALOGV("set_light_backlight");
 	int err = 0;
 	int brightness = rgb_to_brightness(state);
 	ALOGV("%s brightness=%d color=0x%08x",
@@ -256,6 +291,7 @@ static int set_light_backlight(struct light_device_t* dev,
 
 static int set_light_battery (struct light_device_t* dev,
 		struct light_state_t const* state) {
+	ALOGV("set_light_battery");
 	pthread_mutex_lock (&g_lock);
 	g_battery = *state;
 	handle_speaker_battery_locked(dev);
@@ -266,10 +302,23 @@ static int set_light_battery (struct light_device_t* dev,
 
 static int set_light_attention (struct light_device_t* dev,
 		struct light_state_t const* state) {
+
+    // we only support flasging attentions
+    if(state->flashMode == LIGHT_FLASH_TIMED){
+    	ALOGV("Led Attention beeing set");
+	    pthread_mutex_lock (&g_lock);
+	    g_notification = *state;
+	    handle_speaker_battery_locked (dev);
+	    pthread_mutex_unlock (&g_lock);
+    } else {
+        ALOGE("Unsupported Led Attention");
+    }
 	return 0;
 }
+
 static int set_light_notifications (struct light_device_t* dev,
 		struct light_state_t const* state) {
+	ALOGV("Led Notification being set");
 	pthread_mutex_lock (&g_lock);
 	g_notification = *state;
 	handle_speaker_battery_locked (dev);
@@ -334,7 +383,7 @@ struct hw_module_t HAL_MODULE_INFO_SYM = {
 	.version_major = 4,
 	.version_minor = 1,
 	.id = LIGHTS_HARDWARE_MODULE_ID,
-	.name = "Jellybean Lights",
-	.author = "Simon Sickle <simon@simonsickle.com",
+	.name = "Jellybean lights",
+	.author = "Max Weninger <max.weninger@gmail.com>",
 	.methods = &lights_module_methods,
 };
