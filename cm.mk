@@ -2,15 +2,15 @@
 $(call inherit-product, device/htc/primou/device.mk)
 
 # Inherit some common EV stuff.
-$(call inherit-product, vendor/ev/config/common_full_phone.mk)
+$(call inherit-product, vendor/cm/config/common_full_phone.mk)
 
 # Inherit some common EV stuff.
-$(call inherit-product, vendor/ev/config/gsm.mk)
+$(call inherit-product, vendor/cm/config/gsm.mk)
 
 # Inherit from those products. Most specific first.
 $(call inherit-product, $(SRC_TARGET_DIR)/product/full_base_telephony.mk)
 
-PRODUCT_NAME := ev_primou
+PRODUCT_NAME := cm_primou
 PRODUCT_RELEASE_NAME := primou
 PRODUCT_BRAND := htc
 PRODUCT_DEVICE := primou
